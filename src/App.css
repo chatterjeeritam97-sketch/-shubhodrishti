@@ -152,3 +152,9 @@
 	*, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 	.petal-rain { display: none; }
 }
+
+/* Let page scrolling continue when the invitation text reaches either edge. */
+.invitation-scroll {
+	overscroll-behavior-y: auto;
+	-webkit-overflow-scrolling: touch;
+}
