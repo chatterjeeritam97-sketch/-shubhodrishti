@@ -158,10 +158,37 @@
 	overscroll-behavior-y: auto;
 }
 
-/* On a phone, a nearly full-screen invitation lets the page move instead of scrolling the letter. */
+/* Phones read the letter sideways. A vertical swipe still moves the corridor. */
 @media (max-width: 700px), (hover: none) and (pointer: coarse) {
-	.invitation-scroll.is-locked {
-		overflow: hidden;
-		touch-action: pan-y;
+	.invitation-scroll {
+		display: flex;
+		overflow-x: auto;
+		overflow-y: hidden;
+		overscroll-behavior: none auto;
+		touch-action: pan-x;
+		padding-right: 0;
+		padding-bottom: 6px;
+	}
+	.invitation-copy {
+		display: block;
+		flex: 0 0 auto;
+		height: 100%;
+		width: max-content;
+		max-width: none;
+		margin: 0;
+		column-width: min(74vw, 280px);
+		column-gap: 28px;
+		column-fill: auto;
+	}
+	.invitation-copy h2,
+	.invitation-copy p,
+	.invitation-people {
+		break-inside: avoid;
+	}
+	.invitation-people {
+		display: block;
+		width: auto;
+		margin-top: 0;
+		text-align: start;
 	}
 }

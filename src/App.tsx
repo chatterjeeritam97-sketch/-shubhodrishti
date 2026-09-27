@@ -39,40 +39,6 @@ function App() {
   const [invitationLanguage, setInvitationLanguage] = useState<'bn' | 'en'>('bn')
   const [rsvpOpen, setRsvpOpen] = useState(false)
   const rsvpCloseRef = useRef<HTMLButtonElement>(null)
-  const invitationScrollRef = useRef<HTMLDivElement>(null)
-  const invitationPanelRef = useRef<HTMLElement>(null)
-
-  useEffect(() => {
-    const panelNode = invitationPanelRef.current
-    const scrollerNode = invitationScrollRef.current
-    if (!panelNode || !scrollerNode) return
-    const panel: HTMLElement = panelNode
-    const scroller: HTMLDivElement = scrollerNode
-    const phone = window.matchMedia('(max-width: 700px), (hover: none) and (pointer: coarse)')
-
-    function screenCoverage() {
-      const rect = panel.getBoundingClientRect()
-      const viewportWidth = window.innerWidth
-      const viewportHeight = window.innerHeight
-      if (viewportWidth === 0 || viewportHeight === 0) return 0
-      const visibleWidth = Math.max(0, Math.min(rect.right, viewportWidth) - Math.max(rect.left, 0))
-      const visibleHeight = Math.max(0, Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0))
-      return (visibleWidth * visibleHeight) / (viewportWidth * viewportHeight)
-    }
-
-    function updateInvitationScroll() {
-      const lockInnerScroll = phone.matches && screenCoverage() > 0.97
-      scroller.classList.toggle('is-locked', lockInnerScroll)
-    }
-
-    gsap.ticker.add(updateInvitationScroll)
-    phone.addEventListener('change', updateInvitationScroll)
-    return () => {
-      gsap.ticker.remove(updateInvitationScroll)
-      phone.removeEventListener('change', updateInvitationScroll)
-      scroller.classList.remove('is-locked')
-    }
-  }, [])
 
   useEffect(() => {
     if (!rsvpOpen) return
@@ -179,7 +145,7 @@ function App() {
           <img className="distributed-art celebration-meal" src={bananaLeafMeal} alt="" aria-hidden="true" />
           <img className="distributed-art celebration-pot" src={ritualPot} alt="" aria-hidden="true" />
         </article>
-        <article className="corridor-panel invitation-panel" id="invitation" ref={invitationPanelRef} aria-labelledby="invitation-title">
+        <article className="corridor-panel invitation-panel" id="invitation" aria-labelledby="invitation-title">
           <img className="invitation-corner invitation-corner-left" src={kalash} alt="" aria-hidden="true" />
           <img className="invitation-corner invitation-corner-right" src={decorativePanel} alt="" aria-hidden="true" />
           <div className="invitation-shell">
@@ -191,7 +157,7 @@ function App() {
             </div>
           </div>
           <div className="invitation-rule" />
-          <div className="invitation-scroll" ref={invitationScrollRef} aria-live="polite">
+          <div className="invitation-scroll" aria-live="polite">
             {invitationLanguage === 'bn' ? 
               <div className="invitation-copy bengali-invitation">
                 <h2 id="invitation-title">শ্রীশ্রী প্রজাপতয়ে নমঃ</h2>
