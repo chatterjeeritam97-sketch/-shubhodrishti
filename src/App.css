@@ -153,8 +153,15 @@
 	.petal-rain { display: none; }
 }
 
-/* Let page scrolling continue when the invitation text reaches either edge. */
+/* A mouse or trackpad continues into the corridor once the letter hits an edge. */
 .invitation-scroll {
 	overscroll-behavior-y: auto;
-	-webkit-overflow-scrolling: touch;
+}
+
+/* On a phone, a nearly full-screen invitation lets the page move instead of scrolling the letter. */
+@media (max-width: 700px), (hover: none) and (pointer: coarse) {
+	.invitation-scroll.is-locked {
+		overflow: hidden;
+		touch-action: pan-y;
+	}
 }
