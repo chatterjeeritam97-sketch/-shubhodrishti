@@ -165,7 +165,7 @@
 		overflow-x: auto;
 		overflow-y: hidden;
 		overscroll-behavior: none auto;
-		touch-action: pan-x;
+		touch-action: manipulation;
 		padding-right: 0;
 		padding-bottom: 6px;
 	}

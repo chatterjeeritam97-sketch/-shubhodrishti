@@ -39,6 +39,56 @@ function App() {
   const [invitationLanguage, setInvitationLanguage] = useState<'bn' | 'en'>('bn')
   const [rsvpOpen, setRsvpOpen] = useState(false)
   const rsvpCloseRef = useRef<HTMLButtonElement>(null)
+  const invitationScrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const node = invitationScrollRef.current
+    if (!node) return
+    const scroller: HTMLDivElement = node
+    const phone = window.matchMedia('(max-width: 700px), (hover: none) and (pointer: coarse)')
+    let startX = 0
+    let startY = 0
+    let lastY = 0
+    let axis: 'x' | 'y' | null = null
+
+    function onTouchStart(event: TouchEvent) {
+      if (!phone.matches) return
+      const touch = event.touches[0]
+      if (!touch) return
+      startX = touch.clientX
+      startY = touch.clientY
+      lastY = touch.clientY
+      axis = null
+    }
+
+    function onTouchMove(event: TouchEvent) {
+      if (!phone.matches) return
+      const touch = event.touches[0]
+      if (!touch) return
+      if (axis === null) {
+        const dx = touch.clientX - startX
+        const dy = touch.clientY - startY
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+        axis = Math.abs(dy) > Math.abs(dx) ? 'y' : 'x'
+      }
+      if (axis !== 'y' || !event.cancelable) return
+      event.preventDefault()
+      const delta = lastY - touch.clientY
+      lastY = touch.clientY
+      const root = document.documentElement
+      const previous = root.style.scrollBehavior
+      root.style.scrollBehavior = 'auto'
+      window.scrollTo(0, window.scrollY + delta)
+      root.style.scrollBehavior = previous
+    }
+
+    scroller.addEventListener('touchstart', onTouchStart, { passive: true })
+    scroller.addEventListener('touchmove', onTouchMove, { passive: false })
+    return () => {
+      scroller.removeEventListener('touchstart', onTouchStart)
+      scroller.removeEventListener('touchmove', onTouchMove)
+    }
+  }, [])
 
   useEffect(() => {
     if (!rsvpOpen) return
@@ -157,7 +207,7 @@ function App() {
             </div>
           </div>
           <div className="invitation-rule" />
-          <div className="invitation-scroll" aria-live="polite">
+          <div className="invitation-scroll" ref={invitationScrollRef} aria-live="polite">
             {invitationLanguage === 'bn' ? 
               <div className="invitation-copy bengali-invitation">
                 <h2 id="invitation-title">শ্রীশ্রী প্রজাপতয়ে নমঃ</h2>
