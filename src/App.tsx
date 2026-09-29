@@ -32,6 +32,68 @@ import pendulum07 from './assets/illustrations/pendulums/pendulum-07.svg'
 gsap.registerPlugin(ScrollTrigger)
 
 const pendulums = [pendulum01, pendulum02, pendulum03, pendulum04, pendulum05, pendulum06, pendulum07]
+const pendulumLifts = ['15.7%', '11.6%', '7.6%', '15.1%', '9.3%', '6.4%', '0.9%']
+
+const garlandBlooms = [
+  { left: '3%', pink: false, under: true, turn: -22 },
+  { left: '9%', pink: true, under: false, turn: 16 },
+  { left: '16%', pink: false, under: true, turn: 12 },
+  { left: '23%', pink: true, under: false, turn: -18 },
+  { left: '30%', pink: false, under: true, turn: 20 },
+  { left: '37%', pink: true, under: false, turn: -12 },
+  { left: '44%', pink: false, under: true, turn: 14 },
+  { left: '51%', pink: true, under: false, turn: -20 },
+  { left: '58%', pink: false, under: true, turn: 18 },
+  { left: '65%', pink: true, under: false, turn: -14 },
+  { left: '72%', pink: false, under: true, turn: 16 },
+  { left: '79%', pink: true, under: false, turn: -18 },
+  { left: '86%', pink: false, under: true, turn: 12 },
+  { left: '93%', pink: true, under: false, turn: -16 },
+]
+
+function windingPath(crest: number) {
+  let path = `M0 16 Q 20 ${crest} 40 16`
+  for (let x = 80; x <= 1200; x += 40) path += ` T ${x} 16`
+  return path
+}
+
+function GarlandBloom({ pink }: { pink: boolean }) {
+  const petal = pink ? '#f48eae' : '#fff8f6'
+  const edge = pink ? '#e36b90' : '#f4c9d6'
+  const heart = pink ? '#ffe7a3' : '#f7b7c8'
+  return (
+    <svg viewBox="0 0 32 32" className="h-4 w-4 overflow-visible drop-shadow-[0_1px_0_rgba(143,71,53,0.25)]" aria-hidden="true">
+      {[0, 72, 144, 216, 288].map((angle) => (
+        <ellipse key={angle} cx="16" cy="7.5" rx="3.1" ry="5.4" fill={petal} stroke={edge} strokeWidth="0.7" transform={`rotate(${angle} 16 16)`} />
+      ))}
+      <circle cx="16" cy="16" r="2.3" fill={heart} />
+    </svg>
+  )
+}
+
+function StringGarland() {
+  return (
+    <>
+      <svg className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-4 w-full -translate-y-1/2 overflow-visible" viewBox="0 0 1200 32" preserveAspectRatio="none" aria-hidden="true">
+        <path d={windingPath(5)} fill="none" stroke="#f7c5d4" strokeWidth="2.4" vectorEffect="non-scaling-stroke" />
+        <path d={windingPath(27)} fill="none" stroke="#fffaf7" strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
+      </svg>
+      {garlandBlooms.filter((bloom) => bloom.under).map((bloom) => (
+        <span key={bloom.left} className="pointer-events-none absolute top-0 z-[1] -translate-x-1/2 translate-y-[1px]" style={{ left: bloom.left, transform: `translate(-50%, -58%) rotate(${bloom.turn}deg)` }}>
+          <GarlandBloom pink={bloom.pink} />
+        </span>
+      ))}
+      <span className="pointer-events-none absolute inset-x-0 top-0 z-[2] h-0.5 bg-[#c91421] shadow-[0_1px_0_#f6e2a8,0_-1px_0_#f6e2a8]" />
+      <span className="pointer-events-none absolute top-0 left-0 z-[2] size-2 -translate-x-1/2 -translate-y-[3px] rounded-full border border-[#f8e7b0] bg-[#8f4735]" />
+      <span className="pointer-events-none absolute top-0 right-0 z-[2] size-2 translate-x-1/2 -translate-y-[3px] rounded-full border border-[#f8e7b0] bg-[#8f4735]" />
+      {garlandBlooms.filter((bloom) => !bloom.under).map((bloom) => (
+        <span key={bloom.left} className="pointer-events-none absolute top-0 z-[3] -translate-x-1/2" style={{ left: bloom.left, transform: `translate(-50%, -78%) rotate(${bloom.turn}deg)` }}>
+          <GarlandBloom pink={bloom.pink} />
+        </span>
+      ))}
+    </>
+  )
+}
 
 function App() {
   const pageRef = useRef<HTMLElement>(null)
@@ -123,6 +185,7 @@ function App() {
   useLayoutEffect(() => {
     const page = pageRef.current
     if (!page) return
+    const detach: Array<() => void> = []
     const context = gsap.context(() => {
       const panels = gsap.utils.toArray<HTMLElement>('.corridor-panel')
       const timeline = gsap.timeline({ scrollTrigger: { trigger: '.corridor-scroll', pin: '.corridor-scene', start: 'top top', end: 'bottom bottom', scrub: 2 } })
@@ -135,11 +198,50 @@ function App() {
           timeline.to('.corridor-transition', { autoAlpha: 0, scaleX: 0, duration: 0.42, ease: 'power3.out' }, panelStart + 1.18)
         }
       })
-      gsap.to('.pendulum', { rotation: () => gsap.utils.random(-7, 7), transformOrigin: '50% 0%', duration: () => gsap.utils.random(2.8, 5.2), repeat: -1, yoyo: true, ease: 'sine.inOut', delay: () => gsap.utils.random(-2, 0), stagger: { each: 0.18, from: 'random' } })
+      const pendulumNodes = gsap.utils.toArray<HTMLImageElement>('.pendulum')
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      const originOf = (target: Element) => `50% ${getComputedStyle(target).getPropertyValue('--lift').trim() || '0%'}`
+      const sway = (target: Element) => {
+        gsap.to(target, { rotation: gsap.utils.random(-7, 7), transformOrigin: originOf(target), duration: gsap.utils.random(2.8, 5.2), repeat: -1, yoyo: true, ease: 'sine.inOut', delay: gsap.utils.random(0, 0.8) })
+      }
+      pendulumNodes.forEach((pendulum) => {
+        sway(pendulum)
+        if (reducedMotion) return
+        const onEnter = () => {
+          gsap.killTweensOf(pendulum)
+          const origin = originOf(pendulum)
+          gsap.timeline({
+            onComplete: () => {
+              if (!pendulum.matches(':hover')) {
+                sway(pendulum)
+                return
+              }
+              gsap.to(pendulum, { keyframes: [{ rotation: 1.1, duration: 0.18 }, { rotation: -1.1, duration: 0.18 }], repeat: -1, ease: 'sine.inOut', transformOrigin: origin })
+            },
+          })
+            .to(pendulum, { rotation: '+=3.5', duration: 0.22, ease: 'sine.out', transformOrigin: origin })
+            .to(pendulum, { rotation: '-=5', duration: 0.32, ease: 'sine.inOut', transformOrigin: origin })
+            .to(pendulum, { rotation: '+=2.5', duration: 0.36, ease: 'sine.inOut', transformOrigin: origin })
+            .to(pendulum, { rotation: 0, duration: 0.4, ease: 'sine.out', transformOrigin: origin })
+        }
+        const onLeave = () => {
+          gsap.killTweensOf(pendulum)
+          sway(pendulum)
+        }
+        pendulum.addEventListener('pointerenter', onEnter)
+        pendulum.addEventListener('pointerleave', onLeave)
+        detach.push(() => {
+          pendulum.removeEventListener('pointerenter', onEnter)
+          pendulum.removeEventListener('pointerleave', onLeave)
+        })
+      })
       gsap.from('.hero-stamp, .hero-title, .hero-subtitle', { autoAlpha: 0, y: 28, duration: 1, stagger: 0.14, ease: 'power3.out' })
       gsap.to('.corridor-glow', { opacity: 0.8, scale: 1.18, ease: 'none', scrollTrigger: { trigger: '.corridor-scroll', start: 'top top', end: 'bottom bottom', scrub: true } })
     }, page)
-    return () => context.revert()
+    return () => {
+      detach.forEach((remove) => remove())
+      context.revert()
+    }
   }, [])
 
   return (
@@ -150,7 +252,7 @@ function App() {
         <a className="wordmark" href="#home" aria-label="অন্বেষা and ঋতম, home"><span className="wordmark-mark">ম</span><span className="bengali-name">অন্বেষা <span className="vermillion-mark" aria-hidden="true">卐</span> ঋতম</span></a>
       </header>
 
-      <section className="corridor-scroll" id="story" aria-label="Our wedding story"><div className="corridor-scene"><div className="corridor-glow" aria-hidden="true" /><div className="corridor-transition pointer-events-none absolute inset-y-0 left-1/2 z-20 w-[min(42vw,34rem)] -translate-x-1/2 scale-x-0 bg-[radial-gradient(ellipse_at_center,rgba(255,225,157,0.55),rgba(196,137,59,0.12)_42%,transparent_72%)] opacity-0 mix-blend-screen transition-[opacity,transform] duration-700 ease-out" aria-hidden="true"><span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-amber-100/65 shadow-[0_0_20px_6px_rgba(255,220,140,0.35)]" /><span className="absolute inset-y-0 left-1/4 w-px bg-amber-100/20" /><span className="absolute inset-y-0 right-1/4 w-px bg-amber-100/20" /></div><section className="hero corridor-panel corridor-intro" id="home" aria-labelledby="hero-title"><div className="hero-paper" /><div className="hero-arch" /><img className="hero-corner hero-corner-left" src={greenLeaves} alt="" aria-hidden="true" /><img className="hero-corner hero-corner-right" src={flowerBouquet} alt="" aria-hidden="true" /><div className="hero-copy"><p className="hero-kicker">দুই পরিবার · এক আনন্দ</p><div className="hero-stamp"><span>শুভ</span><b>বিবাহ</b></div><h1 className="hero-title" id="hero-title"><span>অন্বেষা</span><span>ঋতম</span></h1><p className="hero-subtitle">আমাদের জীবনের নতুন অধ্যায়ে<br />আপনাকে সাদর আমন্ত্রণ</p><p className="hero-date">২১ নভেম্বর ২০২৬ · কলকাতা</p><a className="hero-link" href="#story">ভেতরে আসুন <span aria-hidden="true">↓</span></a></div><p className="hero-side-note">শুভ বিবাহ · ২০২৬</p><div className="hero-bottomline"><span>Scroll to enter</span><span>কলকাতা · ২২°৩৪′ N</span></div></section><div className="pendulum-row" aria-hidden="true">{pendulums.map((pendulum) => <img className="pendulum" key={pendulum} src={pendulum} alt="" />)}</div>
+      <section className="corridor-scroll" id="story" aria-label="Our wedding story"><div className="corridor-scene"><div className="corridor-glow" aria-hidden="true" /><div className="corridor-transition pointer-events-none absolute inset-y-0 left-1/2 z-20 w-[min(42vw,34rem)] -translate-x-1/2 scale-x-0 bg-[radial-gradient(ellipse_at_center,rgba(255,225,157,0.55),rgba(196,137,59,0.12)_42%,transparent_72%)] opacity-0 mix-blend-screen transition-[opacity,transform] duration-700 ease-out" aria-hidden="true"><span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-amber-100/65 shadow-[0_0_20px_6px_rgba(255,220,140,0.35)]" /><span className="absolute inset-y-0 left-1/4 w-px bg-amber-100/20" /><span className="absolute inset-y-0 right-1/4 w-px bg-amber-100/20" /></div><section className="hero corridor-panel corridor-intro" id="home" aria-labelledby="hero-title"><div className="hero-paper" /><div className="hero-arch" /><img className="hero-corner hero-corner-left" src={greenLeaves} alt="" aria-hidden="true" /><img className="hero-corner hero-corner-right" src={flowerBouquet} alt="" aria-hidden="true" /><div className="hero-copy"><p className="hero-kicker">দুই পরিবার · এক আনন্দ</p><div className="hero-stamp"><span>শুভ</span><b>বিবাহ</b></div><h1 className="hero-title" id="hero-title"><span>অন্বেষা</span><span>ঋতম</span></h1><p className="hero-subtitle">আমাদের জীবনের নতুন অধ্যায়ে<br />আপনাকে সাদর আমন্ত্রণ</p><p className="hero-date">২১ নভেম্বর ২০২৬ · কলকাতা</p><a className="hero-link" href="#story">ভেতরে আসুন <span aria-hidden="true">↓</span></a></div><p className="hero-side-note">শুভ বিবাহ · ২০২৬</p><div className="hero-bottomline"><span>Scroll to enter</span><span>কলকাতা · ২২°৩৪′ N</span></div></section><div className="pendulum-row" aria-hidden="true"><StringGarland />{pendulums.map((pendulum, index) => <span className="pendulum-hanger" key={pendulum}><img className="pendulum" style={{ '--lift': pendulumLifts[index] } as React.CSSProperties} src={pendulum} alt="" /></span>)}</div>
         <article className="corridor-panel panel-cover">
           <img className="panel-art cover-art" src={coverIllustration} alt="Illustrated wedding invitation cover" />
           <div className="panel-copy">
@@ -217,11 +319,11 @@ function App() {
                   <strong>সশ্রদ্ধ প্রণাম ও সাদর সম্ভাষণ জানাই।</strong>
                 </p>
                 <p>
-                  বৈদিক মন্ত্রোচ্চারণ, শঙ্খধ্বনি ও সানাইয়ের মধুর সুরে আমাদের পুত্র 
+                  বৈদিক মন্ত্রোচ্চারণ, শঙ্খধ্বনি ও সানাইয়ের মধুর সুরে আমাদের পুত্র &nbsp;
                   <strong>ঋতম চট্টোপাধ্যায়</strong>-এর সহিত <strong>অন্বেষা পাল</strong>-এর শুভ পরিণয় সম্পন্ন হইয়াছে। দুই পরিবারের স্নেহ, আশীর্বাদ ও শুভকামনায় নবদম্পতির জীবনে আরম্ভ হইয়াছে এক নূতন অধ্যায়।
                 </p>
                 <p>
-                  এই আনন্দঘন শুভক্ষণে নবদম্পতিকে আশীর্বাদ করিবার জন্য আপনাকে ও আপনার পরিবারবর্গকে আমাদের 
+                  এই আনন্দঘন শুভক্ষণে নবদম্পতিকে আশীর্বাদ করিবার জন্য আপনাকে ও আপনার পরিবারবর্গকে আমাদের &nbsp;
                   <strong>বিবাহোত্তর বৌভাতের অনুষ্ঠানে</strong> সাদর আমন্ত্রণ জানাইতেছি। আপনার সানুগ্রহ উপস্থিতিতে আমাদের আনন্দোৎসব পরিপূর্ণ হইবে।
                 </p>
                 <p>
@@ -239,58 +341,29 @@ function App() {
                   <strong>স্বপ্নময় চট্টোপাধ্যায়</strong><br />
                   ব্যারাকপুর
                 </p>
-                <div className="invitation-people">
-                  <p>
-                    <strong>বর</strong><br />
-                    ঋতম চট্টোপাধ্যায়<br />
-                    পিতা: স্বপ্নময় চট্টোপাধ্যায়<br />
-                    মাতা: পূর্ণিমা চট্টোপাধ্যায়<br />
-                    নিবাস: ব্যারাকপুর
-                  </p>
-                  <p>
-                    <strong>বধূ</strong><br />
-                    অন্বেষা পাল<br />
-                    পিতা: সজল কুমার পাল<br />
-                    মাতা: সুচন্দ্রা পাল<br />
-                    নিবাস: হিন্দমোটর
-                  </p>
-                </div>
               </div> : 
               <div className="invitation-copy english-invitation">
                 <h2 id="invitation-title">Wedding Reception Invitation</h2>
                 <p><strong>With the blessings of the Almighty</strong></p>
                 <p>Dear Family and Friends,</p>
-                <p>
+                <p className="english-body">
                   With grateful hearts, we are delighted to share that our son, 
                   <strong>Ritam Chatterjee</strong>, and 
                   <strong>Anwesha Pal</strong> have been united in marriage. Surrounded by the love and blessings of both families, they have begun a beautiful new chapter together.
                 </p>
-                <p>We warmly invite you and your family to join us for their wedding reception and bless the newlyweds. Your presence will make this joyful occasion all the more special.</p>
-                <p>
+                <p className="english-body">We warmly invite you and your family to join us for their wedding reception and bless the newlyweds. Your presence will make this joyful occasion all the more special.</p>
+                <p className="english-body">
                   <strong>Sunday, 15 November 2026</strong><br />
                   <strong>From 6:00 p.m.</strong><br />
                   <strong>Barrackpore Rabindra Bhavan</strong><br />
                   Barrackpore, North 24 Parganas
                 </p>
-                <p>We look forward to celebrating with you and sharing an evening filled with warmth, happiness, and cherished memories.</p>
+                <p className="english-body">We look forward to celebrating with you and sharing an evening filled with warmth, happiness, and cherished memories.</p>
                 <p>
                   With warm regards,<br />
                   <strong>Swapnamoy Chatterjee</strong><br />
                   Barrackpore
                 </p>
-                <div className="invitation-people">
-                  <p><strong>Groom</strong><br />
-                    <strong>Ritam Chatterjee</strong><br />
-                    Son of Swapnamoy Chatterjee and Purnima Chatterjee<br />
-                    Barrackpore
-                  </p>
-                  <p>
-                    <strong>Bride</strong><br />
-                    <strong>Anwesha Pal</strong><br />
-                    Daughter of Sajal Kumar Pal and Suchandra Pal<br />
-                    Hind Motor
-                  </p>
-                </div>
               </div>}
             </div>
           </div>

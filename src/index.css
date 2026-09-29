@@ -1,11 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&family=Galada&family=Noto+Serif+Bengali:wght@400;500;600;700&family=Special+Elite&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@400;600;700;800&family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@400;500;600;700&family=Special+Elite&display=swap');
 @import "tailwindcss";
 
 :root {
   --sans: 'DM Sans', sans-serif;
   --serif: 'Cormorant Garamond', Georgia, serif;
-  --bengali: 'Noto Serif Bengali', serif;
-  --bengali-hand: 'Galada', 'Noto Serif Bengali', serif;
+  --bengali: 'Anek Bangla', 'Noto Serif Bengali', serif;
+  --bengali-hand: 'Anek Bangla', 'Noto Serif Bengali', serif;
   --typewriter: 'Special Elite', 'Courier New', monospace;
   font-family: var(--sans);
   color: #2c2924;
