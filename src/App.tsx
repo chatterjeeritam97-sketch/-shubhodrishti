@@ -7,7 +7,6 @@ import { PetalRain } from './PetalRain'
 
 import coverIllustration from './assets/illustrations/invite_cover_illustration.png'
 import coupleCurrent from './assets/couple_current.png'
-import uluDhoni from './assets/ulu_dhoni.m4a'
 import groomCurrent from './assets/groom_current.jfif'
 import brideCurrent from './assets/bride_current.png'
 import closingIllustration from './assets/illustrations/illustration_end.png'
@@ -97,7 +96,6 @@ function StringGarland() {
 
 function App() {
   const pageRef = useRef<HTMLElement>(null)
-  const uluAudioRef = useRef<HTMLAudioElement>(null)
   const [invitationLanguage, setInvitationLanguage] = useState<'bn' | 'en'>('bn')
   const [rsvpOpen, setRsvpOpen] = useState(false)
   const rsvpCloseRef = useRef<HTMLButtonElement>(null)
@@ -163,7 +161,7 @@ function App() {
     function onTouchStart(event: TouchEvent) {
       if (!phone.matches) return
       const target = event.target
-      if (target instanceof Element && target.closest('.invitation-scroll, .couple-touch, [role="dialog"]')) return
+      if (target instanceof Element && target.closest('.invitation-scroll, [role="dialog"]')) return
       const touch = event.touches[0]
       if (!touch) return
       tracking = true
@@ -226,21 +224,6 @@ function App() {
     }
   }, [rsvpOpen])
 
-  function startUluDhoni() {
-    const audio = uluAudioRef.current
-    if (!audio) return
-    audio.volume = 1
-    audio.currentTime = 0
-    void audio.play().catch(() => undefined)
-  }
-
-  function stopUluDhoni() {
-    const audio = uluAudioRef.current
-    if (!audio) return
-    audio.pause()
-    audio.currentTime = 0
-  }
-
   useLayoutEffect(() => {
     const page = pageRef.current
     if (!page) return
@@ -267,7 +250,6 @@ function App() {
   return (
     <main className="wedding-page" ref={pageRef}>
       <PetalRain />
-      <audio ref={uluAudioRef} src={uluDhoni} loop preload="auto" className="hidden" aria-hidden="true" />
       <header className="site-header">
         <a className="wordmark" href="#home" aria-label="অন্বেষা and ঋতম, home"><span className="wordmark-mark">ম</span><span className="bengali-name">অন্বেষা <span className="vermillion-mark" aria-hidden="true">卐</span> ঋতম</span></a>
       </header>
@@ -313,9 +295,7 @@ function App() {
             <h2>শুভক্ষণ</h2>
             <p>অবশেষে সেই সময় এসে গেছে, যখন উলুধ্বনি শোনা যাবে।</p>
           </div>
-          <button type="button" className="panel-art couple-touch" aria-label="Portrait of the couple. Touch to hear the ulu." onPointerEnter={startUluDhoni} onPointerDown={startUluDhoni} onContextMenu={(event) => event.preventDefault()} onPointerLeave={stopUluDhoni} onPointerCancel={stopUluDhoni}>
-            <img className="couple-art" src={coupleCurrent} alt="" draggable={false} />
-          </button>
+          <img className="panel-art couple-art" src={coupleCurrent} alt="Portrait of the couple" />
           <img className="distributed-art celebration-meal" src={bananaLeafMeal} alt="" aria-hidden="true" />
           <img className="distributed-art celebration-pot" src={ritualPot} alt="" aria-hidden="true" />
         </article>
