@@ -135,7 +135,7 @@ function App() {
       }
       if (axis !== 'y' || !event.cancelable) return
       event.preventDefault()
-      const delta = lastY - touch.clientY
+      const delta = touch.clientY - lastY
       lastY = touch.clientY
       const root = document.documentElement
       const previous = root.style.scrollBehavior
@@ -149,6 +149,65 @@ function App() {
     return () => {
       scroller.removeEventListener('touchstart', onTouchStart)
       scroller.removeEventListener('touchmove', onTouchMove)
+    }
+  }, [])
+
+  useEffect(() => {
+    const phone = window.matchMedia('(max-width: 700px), (hover: none) and (pointer: coarse)')
+    let startX = 0
+    let startY = 0
+    let lastY = 0
+    let axis: 'x' | 'y' | null = null
+    let tracking = false
+
+    function onTouchStart(event: TouchEvent) {
+      if (!phone.matches) return
+      const target = event.target
+      if (target instanceof Element && target.closest('.invitation-scroll, .couple-touch, [role="dialog"]')) return
+      const touch = event.touches[0]
+      if (!touch) return
+      tracking = true
+      startX = touch.clientX
+      startY = touch.clientY
+      lastY = touch.clientY
+      axis = null
+    }
+
+    function onTouchMove(event: TouchEvent) {
+      if (!tracking || !phone.matches) return
+      const touch = event.touches[0]
+      if (!touch) return
+      if (axis === null) {
+        const dx = touch.clientX - startX
+        const dy = touch.clientY - startY
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+        axis = Math.abs(dy) > Math.abs(dx) ? 'y' : 'x'
+      }
+      if (axis !== 'y' || !event.cancelable) return
+      event.preventDefault()
+      const delta = touch.clientY - lastY
+      lastY = touch.clientY
+      const root = document.documentElement
+      const previous = root.style.scrollBehavior
+      root.style.scrollBehavior = 'auto'
+      window.scrollTo(0, window.scrollY + delta)
+      root.style.scrollBehavior = previous
+    }
+
+    function onTouchEnd() {
+      tracking = false
+      axis = null
+    }
+
+    document.addEventListener('touchstart', onTouchStart, { passive: true })
+    document.addEventListener('touchmove', onTouchMove, { passive: false })
+    document.addEventListener('touchend', onTouchEnd)
+    document.addEventListener('touchcancel', onTouchEnd)
+    return () => {
+      document.removeEventListener('touchstart', onTouchStart)
+      document.removeEventListener('touchmove', onTouchMove)
+      document.removeEventListener('touchend', onTouchEnd)
+      document.removeEventListener('touchcancel', onTouchEnd)
     }
   }, [])
 
@@ -185,10 +244,10 @@ function App() {
   useLayoutEffect(() => {
     const page = pageRef.current
     if (!page) return
-    const detach: Array<() => void> = []
     const context = gsap.context(() => {
       const panels = gsap.utils.toArray<HTMLElement>('.corridor-panel')
-      const timeline = gsap.timeline({ scrollTrigger: { trigger: '.corridor-scroll', pin: '.corridor-scene', start: 'top top', end: 'bottom bottom', scrub: 2 } })
+      const phone = window.matchMedia('(max-width: 700px), (hover: none) and (pointer: coarse)')
+      const timeline = gsap.timeline({ scrollTrigger: { trigger: '.corridor-scroll', pin: '.corridor-scene', start: 'top top', end: 'bottom bottom', scrub: phone.matches ? 0.6 : 2 } })
       panels.forEach((panel, index) => {
         const panelStart = index === 0 ? 0 : index * 1.9
         timeline.fromTo(panel, { z: index === 0 ? 80 : -850, y: index === 0 ? 0 : 34, rotateX: index === 0 ? 0 : (index % 2 ? 5 : -5), rotateY: index === 0 ? 0 : (index % 2 ? -9 : 9), scale: index === 0 ? 1 : 1.12, filter: 'blur(0px)', autoAlpha: index === 0 ? 1 : 0 }, { z: 80, y: 0, rotateX: 0, rotateY: 0, scale: 1, filter: 'blur(0px)', autoAlpha: 1, duration: 1, ease: 'none' }, panelStart)
@@ -198,50 +257,11 @@ function App() {
           timeline.to('.corridor-transition', { autoAlpha: 0, scaleX: 0, duration: 0.42, ease: 'power3.out' }, panelStart + 1.18)
         }
       })
-      const pendulumNodes = gsap.utils.toArray<HTMLImageElement>('.pendulum')
-      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      const originOf = (target: Element) => `50% ${getComputedStyle(target).getPropertyValue('--lift').trim() || '0%'}`
-      const sway = (target: Element) => {
-        gsap.to(target, { rotation: gsap.utils.random(-7, 7), transformOrigin: originOf(target), duration: gsap.utils.random(2.8, 5.2), repeat: -1, yoyo: true, ease: 'sine.inOut', delay: gsap.utils.random(0, 0.8) })
-      }
-      pendulumNodes.forEach((pendulum) => {
-        sway(pendulum)
-        if (reducedMotion) return
-        const onEnter = () => {
-          gsap.killTweensOf(pendulum)
-          const origin = originOf(pendulum)
-          gsap.timeline({
-            onComplete: () => {
-              if (!pendulum.matches(':hover')) {
-                sway(pendulum)
-                return
-              }
-              gsap.to(pendulum, { keyframes: [{ rotation: 1.1, duration: 0.18 }, { rotation: -1.1, duration: 0.18 }], repeat: -1, ease: 'sine.inOut', transformOrigin: origin })
-            },
-          })
-            .to(pendulum, { rotation: '+=3.5', duration: 0.22, ease: 'sine.out', transformOrigin: origin })
-            .to(pendulum, { rotation: '-=5', duration: 0.32, ease: 'sine.inOut', transformOrigin: origin })
-            .to(pendulum, { rotation: '+=2.5', duration: 0.36, ease: 'sine.inOut', transformOrigin: origin })
-            .to(pendulum, { rotation: 0, duration: 0.4, ease: 'sine.out', transformOrigin: origin })
-        }
-        const onLeave = () => {
-          gsap.killTweensOf(pendulum)
-          sway(pendulum)
-        }
-        pendulum.addEventListener('pointerenter', onEnter)
-        pendulum.addEventListener('pointerleave', onLeave)
-        detach.push(() => {
-          pendulum.removeEventListener('pointerenter', onEnter)
-          pendulum.removeEventListener('pointerleave', onLeave)
-        })
-      })
+      gsap.to('.pendulum', { rotation: () => gsap.utils.random(-7, 7), transformOrigin: (_index, target) => `50% ${getComputedStyle(target).getPropertyValue('--lift').trim() || '0%'}`, duration: () => gsap.utils.random(2.8, 5.2), repeat: -1, yoyo: true, ease: 'sine.inOut', delay: () => gsap.utils.random(-2, 0), stagger: { each: 0.18, from: 'random' } })
       gsap.from('.hero-stamp, .hero-title, .hero-subtitle', { autoAlpha: 0, y: 28, duration: 1, stagger: 0.14, ease: 'power3.out' })
       gsap.to('.corridor-glow', { opacity: 0.8, scale: 1.18, ease: 'none', scrollTrigger: { trigger: '.corridor-scroll', start: 'top top', end: 'bottom bottom', scrub: true } })
     }, page)
-    return () => {
-      detach.forEach((remove) => remove())
-      context.revert()
-    }
+    return () => context.revert()
   }, [])
 
   return (
@@ -293,7 +313,9 @@ function App() {
             <h2>শুভক্ষণ</h2>
             <p>অবশেষে সেই সময় এসে গেছে, যখন উলুধ্বনি শোনা যাবে।</p>
           </div>
-          <img className="panel-art couple-art" src={coupleCurrent} alt="Portrait of the couple" onPointerEnter={startUluDhoni} onPointerDown={startUluDhoni} onClick={startUluDhoni} onPointerLeave={stopUluDhoni} />
+          <button type="button" className="panel-art couple-touch" aria-label="Portrait of the couple. Touch to hear the ulu." onPointerEnter={startUluDhoni} onPointerDown={startUluDhoni} onContextMenu={(event) => event.preventDefault()} onPointerLeave={stopUluDhoni} onPointerCancel={stopUluDhoni}>
+            <img className="couple-art" src={coupleCurrent} alt="" draggable={false} />
+          </button>
           <img className="distributed-art celebration-meal" src={bananaLeafMeal} alt="" aria-hidden="true" />
           <img className="distributed-art celebration-pot" src={ritualPot} alt="" aria-hidden="true" />
         </article>
